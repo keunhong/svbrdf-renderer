@@ -1,0 +1,91 @@
+import os
+import numpy as np
+from numpy import linalg
+from vispy import gloo, app, util
+from . import io
+
+_package_dir = os.path.dirname(os.path.realpath(__file__))
+_vert_shader_filename = os.path.join(_package_dir, 'svbrdf.vert.glsl')
+_frag_shader_filename = os.path.join(_package_dir, 'svbrdf.frag.glsl')
+
+with open(_vert_shader_filename, 'r') as f:
+    _vert_shader_source = f.read()
+with open(_frag_shader_filename, 'r') as f:
+    _frag_shader_source = f.read()
+
+
+class Camera:
+    def __init__(self, fov, size, near, far, position, lookat, up):
+        self.fov = fov
+        self.size = size
+        self.near = near
+        self.far = far
+
+        self.position = np.array(position)
+        self.lookat = np.array(lookat)
+
+        self.up = np.array((0, 0, -1))
+
+    @property
+    def forward(self):
+        forward = self.lookat - self.position
+        forward /= linalg.norm(forward)
+        return forward
+
+    def perspective_mat(self):
+        return util.transforms.perspective(
+            self.fov, self.size[0] / self.size[1], self.near, self.far).T
+
+    def view_mat(self):
+        rotation_mat = np.eye(3)
+        rotation_mat[:, 2] = -self.forward
+        rotation_mat[:, 0] = np.cross(self.up, rotation_mat[:, 2])
+        rotation_mat[:, 1] = np.cross(rotation_mat[:, 2], rotation_mat[:, 0])
+
+        position = rotation_mat.T.dot(self.position)
+        print(position)
+
+        view_mat = np.eye(4)
+        view_mat[:3, :3] = rotation_mat
+        view_mat[:3, 3] = -position
+
+        return view_mat
+
+
+class Canvas(app.Canvas):
+    def __init__(self, svbrdf, size=(800, 600)):
+        app.Canvas.__init__(self, size=size)
+
+        self.svbrdf = svbrdf
+
+        self.program = gloo.Program(_vert_shader_source,
+                                    _frag_shader_source)
+
+        self.camera = Camera(
+            size=size, fov=75, near=0.1, far=1000.0,
+            position=(5.0, 55.0, 60.0), lookat=(0.0, 10.0, 0.0),
+            up=(0.0, 0.0, -1.0))
+
+        self.light_azimuth = 4.0
+        self.light_elevation = 1.0
+        self.light_distance = 55.0
+        self.light_intensity = 1500.0
+
+        self.object_position = (0, 0)
+        self.object_scale = 100.0
+        self.object_rotation = 0
+        self.light_color = (1.0, 1.0, 1.0)
+
+        self.program['u_view_mat'] = self.camera.view_mat().T
+        self.program['u_perspective_mat'] = self.camera.perspective_mat().T
+        self.program['light_azimuth'] = self.light_azimuth
+        self.program['light_elevation'] = self.light_elevation
+        self.program['light_distance'] = self.light_distance
+        self.program['light_intensity'] = self.light_intensity
+        self.program['light_color'] = self.light_color
+
+        self.program['object_position'] = self.object_position
+        self.program['object_scale'] = self.object_scale
+        self.program['object_rotation'] = self.object_rotation
+
+
