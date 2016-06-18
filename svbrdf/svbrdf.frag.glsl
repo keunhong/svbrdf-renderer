@@ -21,6 +21,7 @@ uniform vec2 object_position;
 void main() {
     vec3 alb_d = texture2D(diff_map_tex, v_uv).rgb;
     vec3 alb_s = texture2D(spec_map_tex, v_uv).rgb;
+//    alb_d = vec3(0.0);
     vec3 specv = texture2D(spec_shape_map_tex, v_uv).rgb;
 
     float or = -object_rotation;
@@ -69,7 +70,7 @@ void main() {
     float fres = F0 + (1-F0)*pow(1.0-max(0,(dot(H,E))), 5.0); // Schlick
     spec = spec * fres / F0;
 
-    vec3 spec3 = spec / vec3(dot(H, L)); // From Brady et al. model A
+    vec3 spec3 = vec3(spec / dot(H, L)); // From Brady et al. model A
 
     gl_FragColor.rgb = (vec3(spec3) * alb_s + alb_d) * vec3(cosine) / D2
                        * light_intensity * light_color;

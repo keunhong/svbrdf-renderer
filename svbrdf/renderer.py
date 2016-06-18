@@ -15,6 +15,10 @@ with open(_frag_shader_filename, 'r') as f:
     _frag_shader_source = f.read()
 
 
+def _normalized(vec):
+    return vec / linalg.norm(vec)
+
+
 class Camera:
     def __init__(self, fov, size, near, far, position, lookat, up):
         self.fov = fov
@@ -24,14 +28,11 @@ class Camera:
 
         self.position = np.array(position)
         self.lookat = np.array(lookat)
-
-        self.up = np.array((0, 0, -1))
+        self.up = _normalized(np.array(up))
 
     @property
     def forward(self):
-        forward = self.lookat - self.position
-        forward /= linalg.norm(forward)
-        return forward
+        return _normalized(self.lookat - self.position)
 
     def perspective_mat(self):
         return util.transforms.perspective(
@@ -39,12 +40,11 @@ class Camera:
 
     def view_mat(self):
         rotation_mat = np.eye(3)
-        rotation_mat[:, 2] = -self.forward
-        rotation_mat[:, 0] = np.cross(self.up, rotation_mat[:, 2])
-        rotation_mat[:, 1] = np.cross(rotation_mat[:, 2], rotation_mat[:, 0])
+        rotation_mat[0, :] = np.cross(self.forward, self.up)
+        rotation_mat[1, :] = self.up
+        rotation_mat[2, :] = -self.forward
 
-        position = rotation_mat.T.dot(self.position)
-        print(position)
+        position = rotation_mat.dot(self.position)
 
         view_mat = np.eye(4)
         view_mat[:3, :3] = rotation_mat
@@ -64,11 +64,12 @@ class Canvas(app.Canvas):
 
         self.camera = Camera(
             size=size, fov=75, near=0.1, far=1000.0,
-            position=(5.0, 55.0, 60.0), lookat=(0.0, 10.0, 0.0),
-            up=(0.0, 0.0, -1.0))
+            position=(0.0, 0.0, 50.0),
+            lookat=(0.0, 0.0, 0.0),
+            up=(0.0, 1.0, 0.0))
 
-        self.light_azimuth = 4.0
-        self.light_elevation = 1.0
+        self.light_azimuth = 0.0
+        self.light_elevation = np.pi / 4
         self.light_distance = 55.0
         self.light_intensity = 1500.0
 
@@ -115,8 +116,15 @@ class Canvas(app.Canvas):
         self.program['a_position'] = positions
         self.program['a_uv'] = uvs
 
+        self.timer = app.Timer('auto', self.on_timer)
+        self.timer.start()
+
     def on_draw(self, event):
         gloo.clear('black')
         self.program.draw(gl.GL_TRIANGLE_STRIP)
 
+    def on_timer(self, event):
+        self.light_azimuth += 0.05
+        self.program['light_azimuth'] = self.light_azimuth
+        self.update()
 
