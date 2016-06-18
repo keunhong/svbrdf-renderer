@@ -2,7 +2,8 @@ import os
 import numpy as np
 from numpy import linalg
 from vispy import gloo, app, util
-from . import io
+from vispy.gloo import gl
+from . import SVBRDF
 
 _package_dir = os.path.dirname(os.path.realpath(__file__))
 _vert_shader_filename = os.path.join(_package_dir, 'svbrdf.vert.glsl')
@@ -53,8 +54,8 @@ class Camera:
 
 
 class Canvas(app.Canvas):
-    def __init__(self, svbrdf, size=(800, 600)):
-        app.Canvas.__init__(self, size=size)
+    def __init__(self, svbrdf: SVBRDF, size=(800, 600)):
+        app.Canvas.__init__(self, size=size, show=True)
 
         self.svbrdf = svbrdf
 
@@ -85,7 +86,37 @@ class Canvas(app.Canvas):
         self.program['light_color'] = self.light_color
 
         self.program['object_position'] = self.object_position
-        self.program['object_scale'] = self.object_scale
         self.program['object_rotation'] = self.object_rotation
+
+        self.program['cam_pos'] = self.camera.position
+
+        self.program['alpha'] = self.svbrdf.alpha
+        self.program['diff_map_tex'] = self.svbrdf.diffuse_map
+        self.program['spec_map_tex'] = self.svbrdf.specular_map
+        self.program['spec_shape_map_tex'] = self.svbrdf.spec_shape_map
+        self.program['normal_map_tex'] = self.svbrdf.normal_map
+
+        height, width, _ = self.svbrdf.diffuse_map.shape
+        aspect = height / width
+        planesize = self.object_scale * 0.5
+        positions = np.array([
+            [-planesize, -planesize * aspect, 0],
+            [-planesize, planesize * aspect, 0],
+            [planesize, -planesize * aspect, 0],
+            [planesize, planesize * aspect, 0],
+        ], dtype=np.float32)
+        uvs = np.array([
+            [0, 0],
+            [0, 1],
+            [1, 0],
+            [1, 1],
+        ], dtype=np.float32)
+
+        self.program['a_position'] = positions
+        self.program['a_uv'] = uvs
+
+    def on_draw(self, event):
+        gloo.clear('black')
+        self.program.draw(gl.GL_TRIANGLE_STRIP)
 
 
