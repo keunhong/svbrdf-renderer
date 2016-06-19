@@ -1,16 +1,16 @@
-import vispy
+import argparse
 from vispy import app
 from svbrdf import renderer, SVBRDF
-import socket
 
-if socket.gethostname() == 'Konstantinoss-MacBook-Pro.local':
-    app.use_app('glfw')
-    datapath = '/Users/kostas/Documents/Projects/wood_door'
-else:
-    app.use_app('pyglet')
-    datapath = '/Volumes/Seagate/Research/data/svbrdf/twoshot_data_results/leather_antique'
+app.use_app('glfw')
 
-svbrdf = SVBRDF(datapath)
-canvas = renderer.Canvas(svbrdf, size=(800, 600))
+parser = argparse.ArgumentParser()
+parser.add_argument('--input-dir', dest='input_dir', type=str, required=True)
 
-app.run()
+args = parser.parse_args()
+
+
+if __name__=='__main__':
+    brdf = SVBRDF(args.input_dir)
+    canvas = renderer.Canvas(brdf, size=(1280, 800))
+    app.run()

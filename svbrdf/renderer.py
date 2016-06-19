@@ -104,8 +104,7 @@ class Canvas(app.Canvas):
 
         self.program['alpha'] = self.svbrdf.alpha
         spec_map_tex = gloo.Texture2D(
-            _normalized_to_range(self.svbrdf.specular_map, 0, 1),
-            interpolation='linear')
+            self.svbrdf.specular_map/20, interpolation='linear')
         diff_map_tex = gloo.Texture2D(
             self.svbrdf.diffuse_map, interpolation='linear')
         self.program['diff_map_tex'] = diff_map_tex

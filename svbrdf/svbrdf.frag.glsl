@@ -21,7 +21,7 @@ uniform vec2 object_position;
 void main() {
     vec3 alb_d = texture2D(diff_map_tex, v_uv).rgb;
     vec3 alb_s = texture2D(spec_map_tex, v_uv).rgb;
-//    alb_d = vec3(0.0);
+//    alb_s = vec3(0.0);
     vec3 specv = texture2D(spec_shape_map_tex, v_uv).rgb;
 
     float or = -object_rotation;
