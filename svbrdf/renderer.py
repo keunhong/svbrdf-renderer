@@ -19,6 +19,16 @@ def _normalized(vec):
     return vec / linalg.norm(vec)
 
 
+def _normalized_to_range(array, lo, hi):
+    if hi <= lo:
+        raise ValueError('Range must be increasing but {} >= {}.'.format(
+            lo, hi))
+    min_val = array.min()
+    max_val = array.max()
+    scale = max_val - min_val if (min_val < max_val) else 1
+    return (array - min_val) / scale * (hi - lo) + lo
+
+
 class Camera:
     def __init__(self, fov, size, near, far, position, lookat, up):
         self.fov = fov
@@ -64,7 +74,7 @@ class Canvas(app.Canvas):
 
         self.camera = Camera(
             size=size, fov=75, near=0.1, far=1000.0,
-            position=(0.0, 0.0, 50.0),
+            position=(5.0, 5.0, 30.0),
             lookat=(0.0, 0.0, 0.0),
             up=(0.0, 1.0, 0.0))
 
@@ -89,11 +99,17 @@ class Canvas(app.Canvas):
         self.program['object_position'] = self.object_position
         self.program['object_rotation'] = self.object_rotation
 
-        self.program['cam_pos'] = self.camera.position
+        # self.program['cam_pos'] = -self.camera.position
+        self.program['cam_pos'] = linalg.inv(self.camera.view_mat())[:3, 3]
 
         self.program['alpha'] = self.svbrdf.alpha
-        self.program['diff_map_tex'] = self.svbrdf.diffuse_map
-        self.program['spec_map_tex'] = self.svbrdf.specular_map
+        spec_map_tex = gloo.Texture2D(
+            _normalized_to_range(self.svbrdf.specular_map, 0, 1),
+            interpolation='linear')
+        diff_map_tex = gloo.Texture2D(
+            self.svbrdf.diffuse_map, interpolation='linear')
+        self.program['diff_map_tex'] = diff_map_tex
+        self.program['spec_map_tex'] = spec_map_tex
         self.program['spec_shape_map_tex'] = self.svbrdf.spec_shape_map
         self.program['normal_map_tex'] = self.svbrdf.normal_map
 
