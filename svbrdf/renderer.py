@@ -2,7 +2,7 @@ import os
 import numpy as np
 from numpy import linalg
 from vispy import gloo, app, util
-from vispy.gloo import gl
+from vispy.gloo import gl, Texture2D
 from . import SVBRDF
 
 _package_dir = os.path.dirname(os.path.realpath(__file__))
@@ -99,22 +99,21 @@ class Canvas(app.Canvas):
         self.program['object_position'] = self.object_position
         self.program['object_rotation'] = self.object_rotation
 
-        # self.program['cam_pos'] = -self.camera.position
-        self.program['cam_pos'] = linalg.inv(self.camera.view_mat())[:3, 3]
+        self.program['cam_pos'] = self.camera.position
 
         self.program['alpha'] = self.svbrdf.alpha
-        spec_map_tex = gloo.Texture2D(
-            self.svbrdf.specular_map/20,
-            interpolation='linear',
-            wrapping='repeat')
-        diff_map_tex = gloo.Texture2D(
-            self.svbrdf.diffuse_map,
-            interpolation='linear',
-            wrapping='repeat')
-        self.program['diff_map_tex'] = diff_map_tex
-        self.program['spec_map_tex'] = spec_map_tex
-        self.program['spec_shape_map_tex'] = self.svbrdf.spec_shape_map
-        self.program['normal_map_tex'] = self.svbrdf.normal_map
+        self.program['diff_map'] = Texture2D(self.svbrdf.diffuse_map,
+                                             interpolation='linear',
+                                             wrapping='repeat')
+        self.program['spec_map'] = Texture2D(self.svbrdf.specular_map,
+                                             interpolation='linear',
+                                             wrapping='repeat')
+        self.program['spec_shape_map'] = Texture2D(self.svbrdf.spec_shape_map,
+                                                   interpolation='linear',
+                                                   wrapping='repeat')
+        self.program['normal_map'] = Texture2D(self.svbrdf.normal_map,
+                                                   interpolation='linear',
+                                                   wrapping='repeat')
 
         height, width, _ = self.svbrdf.diffuse_map.shape
         aspect = height / width
@@ -127,9 +126,9 @@ class Canvas(app.Canvas):
         ], dtype=np.float32)
         uvs = np.array([
             [0, 0],
-            [0, 2],
-            [2, 0],
-            [2, 2],
+            [0, 1],
+            [1, 0],
+            [1, 1],
         ], dtype=np.float32)
 
         self.program['a_position'] = positions
