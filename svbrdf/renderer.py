@@ -104,9 +104,13 @@ class Canvas(app.Canvas):
 
         self.program['alpha'] = self.svbrdf.alpha
         spec_map_tex = gloo.Texture2D(
-            self.svbrdf.specular_map/20, interpolation='linear')
+            self.svbrdf.specular_map/20,
+            interpolation='linear',
+            wrapping='repeat')
         diff_map_tex = gloo.Texture2D(
-            self.svbrdf.diffuse_map, interpolation='linear')
+            self.svbrdf.diffuse_map,
+            interpolation='linear',
+            wrapping='repeat')
         self.program['diff_map_tex'] = diff_map_tex
         self.program['spec_map_tex'] = spec_map_tex
         self.program['spec_shape_map_tex'] = self.svbrdf.spec_shape_map
@@ -123,9 +127,9 @@ class Canvas(app.Canvas):
         ], dtype=np.float32)
         uvs = np.array([
             [0, 0],
-            [0, 1],
-            [1, 0],
-            [1, 1],
+            [0, 2],
+            [2, 0],
+            [2, 2],
         ], dtype=np.float32)
 
         self.program['a_position'] = positions
