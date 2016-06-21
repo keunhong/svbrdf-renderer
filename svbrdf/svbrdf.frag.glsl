@@ -4,7 +4,10 @@ uniform sampler2D spec_map;
 uniform sampler2D spec_shape_map;
 uniform sampler2D normal_map;
 uniform vec3 cam_pos;
-varying vec3 v_pos;
+varying vec3 v_position;
+varying vec3 v_normal;
+varying vec3 v_tangent;
+varying vec3 v_bitangent;
 varying vec2 v_uv;
 
 uniform float alpha;
@@ -19,42 +22,17 @@ uniform float object_rotation;
 uniform vec2 object_position;
 
 
-vec3 RGBToYCgCo(vec3 rgb) {
-    mat3 M = mat3(0.25, 0.5,  0.25,
-                  -0.25, 0.5, -0.25,
-                  0.5 ,  0.0, -0.5);
-    vec3 yCgCo = rgb * M;
-    return yCgCo;
-}
-
-
-vec3 YCgCoToRGB(vec3 yCgCo) {
-    float tmp = yCgCo.x - yCgCo.y;
-    vec3 rgb = vec3(tmp + yCgCo.z, yCgCo.x + yCgCo.y, tmp - yCgCo.z);
-    return rgb;
-}
-
-
-vec3 reinhard(vec3 rgb) {
-    vec3 yCgCoHDR = RGBToYCgCo(rgb);
-    vec3 yCgCoLDR;
-    yCgCoLDR.x  = yCgCoHDR.x / (1 + yCgCoHDR.x);
-    yCgCoLDR.yz = yCgCoHDR.yz;
-    vec3 ldr = YCgCoToRGB(yCgCoLDR);
-    return ldr;
-}
-
-
 void main() {
+    mat3 tbn_mat = mat3(v_tangent, v_bitangent, v_normal);
     vec3 alb_d = texture2D(diff_map, v_uv).rgb;
-    vec3 alb_s = texture2D(spec_map, v_uv).rgb * 0.04;
-//    alb_d = vec3(0);
+    vec3 alb_s = texture2D(spec_map, v_uv).rgb / 14;
+//    alb_s = vec3(0);
     vec3 specv = texture2D(spec_shape_map, v_uv).rgb;
 
     float or = -object_rotation;
     mat2 OR = mat2(cos(or), -sin(or), sin(or), cos(or));
 
-    vec3 pos2 = v_pos;
+    vec3 pos2 = v_position;
     vec3 cameraPos2 = cam_pos;
     cameraPos2.xy = OR * (cameraPos2.xy-object_position);
     vec3 E = normalize(cameraPos2-pos2);
@@ -73,7 +51,10 @@ void main() {
     float h = light_distance * cos(light_elevation);
     vec3 H = normalize(L + E);
     vec3 N = texture2D(normal_map, v_uv).rgb;
+//    N = tbn_mat * N;
     N = N / length(N);
+
+//    gl_FragColor = vec4(v_normal, 1.0);
 
     mat3 R = mat3(
         0, 0, N.x,
@@ -90,7 +71,7 @@ void main() {
 
     vec3 HnpW = vec3(M * Hnp.xy, 1.0);
 
-    float spec = exp(-pow(dot(HnpW.xy,Hnp.xy), alpha * 0.5));
+    float spec = exp(-pow(dot(HnpW.xy, Hnp.xy), alpha * 0.5));
     float cosine = max(.0, dot(N,L));
     float F0 = 0.04;
 

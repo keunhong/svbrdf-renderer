@@ -3,7 +3,13 @@ uniform mat4 u_view_mat;
 uniform mat4 u_perspective_mat;
 attribute vec3 a_position;
 attribute vec2 a_uv;
-varying vec3 v_pos;
+attribute vec3 a_normal;
+attribute vec3 a_tangent;
+attribute vec3 a_bitangent;
+varying vec3 v_position;
+varying vec3 v_normal;
+varying vec3 v_tangent;
+varying vec3 v_bitangent;
 varying vec2 v_uv;
 uniform float object_rotation;
 uniform vec2 object_position;
@@ -20,6 +26,12 @@ void main() {
 
     gl_Position = u_perspective_mat * u_view_mat * pos4_2;
 
-    v_pos = pos4.xyz;
+    v_position = pos4.xyz;
+//    v_normal = mat3(u_view_mat) * a_normal;
+//    v_tangent = mat3(u_view_mat) * a_tangent;
+//    v_bitangent = mat3(u_view_mat) * a_bitangent;
+    v_normal = a_normal;
+    v_tangent = a_tangent;
+    v_bitangent = a_bitangent;
     v_uv  = a_uv;
 }
