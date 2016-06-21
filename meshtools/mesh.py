@@ -9,7 +9,7 @@ class Mesh:
         self.faces = faces
         self.normals = normals
         # self.normals = self.compute_normals()
-        self.uvs = uvs * 100
+        self.uvs = uvs * 400
         print(uvs.shape)
         print(vertices.shape)
         self.materials = materials

@@ -81,10 +81,10 @@ class Canvas(app.Canvas):
             lookat=(0.0, 0.0, 0.0),
             up=(0.0, 1.0, 0.0))
 
-        self.light_azimuth = 0.0
-        self.light_elevation = np.pi / 4
+        self.light_azimuth = np.pi / 4
+        self.light_elevation = np.pi / 2
         self.light_distance = 120.0
-        self.light_intensity = 2200.0
+        self.light_intensity = 3200.0
 
         self.object_position = (0, 0)
         self.object_scale = 100.0
@@ -142,10 +142,10 @@ class Canvas(app.Canvas):
         self.program.draw(gl.GL_TRIANGLES)
 
     def on_timer(self, event):
-        self.light_azimuth += 0.01
-        # self.camera_rot += 0.01
-        # self.camera.position[0] = 75.0 * np.sin(self.camera_rot)
-        # self.camera.position[2] = 75.0 * np.cos(self.camera_rot)
+        # self.light_azimuth += 0.01
+        self.camera_rot += 0.01
+        self.camera.position[0] = 75.0 * np.sin(self.camera_rot)
+        self.camera.position[2] = 75.0 * np.cos(self.camera_rot)
         self.update_uniforms()
         self.program['light_azimuth'] = self.light_azimuth
         self.update()
