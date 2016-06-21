@@ -51,7 +51,7 @@ void main() {
     float h = light_distance * cos(light_elevation);
     vec3 H = normalize(L + E);
     vec3 N = texture2D(normal_map, v_uv).rgb;
-//    N = tbn_mat * N;
+    N = tbn_mat * N;
     N = N / length(N);
 
 //    gl_FragColor = vec4(v_normal, 1.0);
