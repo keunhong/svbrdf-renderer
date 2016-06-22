@@ -67,38 +67,31 @@ class Camera:
 class Canvas(app.Canvas):
     def __init__(self, svbrdf: SVBRDF, mesh : Mesh, size=(800, 600)):
         app.Canvas.__init__(self, size=size, show=True)
+        gloo.set_state(depth_test=True)
+        gloo.set_viewport(0, 0, *self.size)
 
         self.svbrdf = svbrdf
 
         self.program = gloo.Program(_vert_shader_source,
                                     _frag_shader_source)
-        gloo.set_cull_face('front_and_back')
 
         self.camera_rot = 0
         self.camera = Camera(
-            size=size, fov=75, near=10, far=500.0,
+            size=size, fov=75, near=10, far=300.0,
             position=(55.0, 20.0, 50.0),
             lookat=(0.0, 0.0, 0.0),
             up=(0.0, 1.0, 0.0))
 
-        self.light_azimuth = np.pi / 4
-        self.light_elevation = np.pi / 2
-        self.light_distance = 120.0
-        self.light_intensity = 3200.0
+        self.light_intensity = 6200.0
 
         self.object_position = (0, 0)
         self.object_scale = 100.0
         self.object_rotation = 0
         self.light_color = (1.0, 1.0, 1.0)
 
-        self.program['light_azimuth'] = self.light_azimuth
-        self.program['light_elevation'] = self.light_elevation
-        self.program['light_distance'] = self.light_distance
+        self.program['light_position'] = (120, 120, 0)
         self.program['light_intensity'] = self.light_intensity
         self.program['light_color'] = self.light_color
-
-        self.program['object_position'] = self.object_position
-        self.program['object_rotation'] = self.object_rotation
 
         self.update_uniforms()
 
@@ -138,15 +131,14 @@ class Canvas(app.Canvas):
 
 
     def on_draw(self, event):
-        gloo.clear('black')
+        gloo.clear(color=(1, 1, 1))
         self.program.draw(gl.GL_TRIANGLES)
 
     def on_timer(self, event):
         # self.light_azimuth += 0.01
         self.camera_rot += 0.01
-        self.camera.position[0] = 75.0 * np.sin(self.camera_rot)
-        self.camera.position[2] = 75.0 * np.cos(self.camera_rot)
+        self.camera.position[0] = 100.0 * np.sin(self.camera_rot)
+        self.camera.position[2] = 100.0 * np.cos(self.camera_rot)
         self.update_uniforms()
-        self.program['light_azimuth'] = self.light_azimuth
         self.update()
 

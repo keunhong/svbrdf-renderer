@@ -9,7 +9,8 @@ class Mesh:
         self.faces = faces
         self.normals = normals
         # self.normals = self.compute_normals()
-        self.uvs = uvs * 400
+        print(normals.shape, self.compute_normals().shape)
+        self.uvs = uvs * 500
         print(uvs.shape)
         print(vertices.shape)
         self.materials = materials
@@ -24,16 +25,26 @@ class Mesh:
             self.vertices -= center_point[None, :]
 
     def compute_normals(self):
+        num_vertices = len(self.vertices)
         num_faces = len(self.faces)
-        normals = np.zeros((num_faces, 3), dtype=np.float32)
+        normal_count = np.zeros((num_vertices, 1), dtype=np.int32)
+        normals = np.zeros((num_vertices, 3), dtype=np.float32)
         for i, face in enumerate(self.faces):
-            face_vertex_indices = [v for v in face['vertices']]
-            v1 = self.vertices[face_vertex_indices[0] - 1]
-            v2 = self.vertices[face_vertex_indices[1] - 1]
-            v3 = self.vertices[face_vertex_indices[2] - 1]
-            normal = np.cross(v1 - v2, v3 - v2)
+            face_vertex_indices = [v - 1 for v in face['vertices']]
+            v1 = self.vertices[face_vertex_indices[0]]
+            v2 = self.vertices[face_vertex_indices[1]]
+            v3 = self.vertices[face_vertex_indices[2]]
+            normal = np.cross(v2 - v1, v3 - v1)
             normal /= linalg.norm(normal)
-            normals[i] = normal
+            # normals[i] = normal
+            normals[face_vertex_indices[0], :] += normal
+            normals[face_vertex_indices[1], :] += normal
+            normals[face_vertex_indices[2], :] += normal
+            normal_count[face_vertex_indices[0]] += 1
+            normal_count[face_vertex_indices[1]] += 1
+            normal_count[face_vertex_indices[2]] += 1
+        for i in range(num_vertices):
+            normals[i, :] /= normal_count[i]
         return normals
 
     # def compute_uvs(self):

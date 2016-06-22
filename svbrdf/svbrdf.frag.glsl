@@ -13,9 +13,7 @@ varying vec2 v_uv;
 uniform float alpha;
 
 uniform float light_intensity;
-uniform float light_azimuth;
-uniform float light_elevation;
-uniform float light_distance;
+uniform vec3 light_position;
 uniform vec3 light_color;
 
 uniform float object_rotation;
@@ -23,38 +21,26 @@ uniform vec2 object_position;
 
 
 void main() {
+//    gl_FragColor = vec4((v_normal + 1.0) / 2.0, 1.0);
+
     mat3 tbn_mat = mat3(v_tangent, v_bitangent, v_normal);
     vec3 alb_d = texture2D(diff_map, v_uv).rgb;
-    vec3 alb_s = texture2D(spec_map, v_uv).rgb / 14;
-//    alb_s = vec3(0);
+    vec3 alb_s = texture2D(spec_map, v_uv).rgb;
+//    alb_d = vec3(0);
     vec3 specv = texture2D(spec_shape_map, v_uv).rgb;
 
-    float or = -object_rotation;
-    mat2 OR = mat2(cos(or), -sin(or), sin(or), cos(or));
-
-    vec3 pos2 = v_position;
-    vec3 cameraPos2 = cam_pos;
-    cameraPos2.xy = OR * (cameraPos2.xy-object_position);
-    vec3 E = normalize(cameraPos2-pos2);
+    vec3 E = normalize(cam_pos-v_position);
     vec3 L;
 
-    L.x = sin(light_elevation)*cos(light_azimuth);
-    L.y = sin(light_elevation)*sin(light_azimuth);
-    L.z = cos(light_elevation);
-    L = L * light_distance;
-    L.xy = OR * (L.xy - object_position);
-    L = L - pos2;
+    L = light_position - v_position;
 
     float D2 = dot(L, L);
     L = L / sqrt(D2);
 
-    float h = light_distance * cos(light_elevation);
     vec3 H = normalize(L + E);
     vec3 N = texture2D(normal_map, v_uv).rgb;
     N = tbn_mat * N;
     N = N / length(N);
-
-//    gl_FragColor = vec4(v_normal, 1.0);
 
     mat3 R = mat3(
         0, 0, N.x,
