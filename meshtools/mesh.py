@@ -10,7 +10,7 @@ class Mesh:
         self.normals = normals
         # self.normals = self.compute_normals()
         print(normals.shape, self.compute_normals().shape)
-        self.uvs = uvs * 500
+        self.uvs = uvs
         print(uvs.shape)
         print(vertices.shape)
         self.materials = materials
@@ -57,7 +57,7 @@ class Mesh:
             face_vertex_indices = [v for v in face['vertices']]
             face_vertices = [self.vertices[i - 1, :]
                              for i in face_vertex_indices]
-            face_uvs = [self.uvs[i - 1, :]
+            face_uvs = [self.uvs[i - 1, :] * 100
                         for i in face_vertex_indices]
             delta_pos1 = face_vertices[1] - face_vertices[0]
             delta_pos2 = face_vertices[2] - face_vertices[0]

@@ -82,14 +82,11 @@ class Canvas(app.Canvas):
             lookat=(0.0, 0.0, 0.0),
             up=(0.0, 1.0, 0.0))
 
-        self.light_intensity = 6200.0
+        self.light_intensity = 8200.0
 
-        self.object_position = (0, 0)
-        self.object_scale = 100.0
-        self.object_rotation = 0
         self.light_color = (1.0, 1.0, 1.0)
 
-        self.program['light_position'] = (120, 120, 0)
+        self.program['light_position'] = (90, 90, 90)
         self.program['light_intensity'] = self.light_intensity
         self.program['light_color'] = self.light_color
 
@@ -99,7 +96,7 @@ class Canvas(app.Canvas):
         self.program['diff_map'] = Texture2D(self.svbrdf.diffuse_map,
                                              interpolation='linear',
                                              wrapping='repeat')
-        self.program['spec_map'] = Texture2D(self.svbrdf.specular_map,
+        self.program['spec_map'] = Texture2D(self.svbrdf.specular_map / 2,
                                              interpolation='linear',
                                              wrapping='repeat')
         self.program['spec_shape_map'] = Texture2D(self.svbrdf.spec_shape_map,
@@ -114,7 +111,7 @@ class Canvas(app.Canvas):
         vertex_positions = mesh.expand_face_vertices()
         vertex_normals = mesh.expand_face_normals()
         vertex_tangents, vertex_bitangents = mesh.expand_tangents()
-        vertex_uvs = mesh.expand_face_uvs() / 100
+        vertex_uvs = mesh.expand_face_uvs()
         self.program['a_position'] = vertex_positions
         self.program['a_normal'] = vertex_normals
         self.program['a_uv'] = vertex_uvs
@@ -136,7 +133,7 @@ class Canvas(app.Canvas):
 
     def on_timer(self, event):
         # self.light_azimuth += 0.01
-        self.camera_rot += 0.01
+        self.camera_rot += 0.005
         self.camera.position[0] = 100.0 * np.sin(self.camera_rot)
         self.camera.position[2] = 100.0 * np.cos(self.camera_rot)
         self.update_uniforms()
