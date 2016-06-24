@@ -15,7 +15,7 @@ varying vec2 v_uv;
 void main() {
     gl_Position = u_perspective_mat * u_view_mat * vec4(a_position, 1.0);
 
-    v_position = v_position.xyz;
+    v_position = a_position.xyz;
     v_normal = a_normal;
     v_tangent = a_tangent;
     v_bitangent = a_bitangent;

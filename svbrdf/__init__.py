@@ -1,4 +1,5 @@
 import os
+
 from . import io
 
 MAP_DIFF_FNAME = 'map_diff.pfm'
@@ -31,6 +32,7 @@ class SVBRDF:
         print('Loading specular shape map.')
         self.spec_shape_map = io.load_pfm_texture(
             os.path.join(path, MAP_SPEC_SHAPE_FNAME))
+        print(self.spec_shape_map)
 
         print('Loaded SVBRDF with width={}, height={}, alpha={}'.format(
             self.diffuse_map.shape[0], self.diffuse_map.shape[1], self.alpha))

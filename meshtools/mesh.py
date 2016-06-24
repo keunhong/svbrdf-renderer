@@ -55,10 +55,11 @@ class Mesh:
         bitangents = []
         for face in self.faces:
             face_vertex_indices = [v for v in face['vertices']]
+            face_uv_indices = [v for v in face['uvs']]
             face_vertices = [self.vertices[i - 1, :]
                              for i in face_vertex_indices]
             face_uvs = [self.uvs[i - 1, :] * 100
-                        for i in face_vertex_indices]
+                        for i in face_uv_indices]
             delta_pos1 = face_vertices[1] - face_vertices[0]
             delta_pos2 = face_vertices[2] - face_vertices[0]
             delta_uv1 = face_uvs[1] - face_uvs[0]
@@ -86,9 +87,9 @@ class Mesh:
     def expand_face_uvs(self):
         out_uvs = []
         for face in self.faces:
-            face_vertex_indices = [v for v in face['vertices']]
+            face_uv_indices = [v for v in face['uvs']]
             face_uvs = [self.uvs[i - 1, :]
-                        for i in face_vertex_indices]
+                        for i in face_uv_indices]
             out_uvs.extend(face_uvs)
         return np.array(out_uvs)
 
