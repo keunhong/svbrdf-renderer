@@ -19,7 +19,7 @@ uniform vec3 light_color;
 void main() {
     vec3 alb_d = texture2D(diff_map, v_uv).rgb;
     vec3 alb_s = texture2D(spec_map, v_uv).rgb;
-    vec3 specv = texture2D(spec_shape_map, v_uv).rgb * 300;
+    vec3 specv = texture2D(spec_shape_map, v_uv).rgb;
 
     vec3 E = normalize(cam_pos - v_position);
 

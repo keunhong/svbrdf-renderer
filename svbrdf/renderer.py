@@ -98,18 +98,18 @@ class Canvas(app.Canvas):
         self.program['alpha'] = self.svbrdf.alpha
         self.program['diff_map'] = Texture2D(self.svbrdf.diffuse_map,
                                              interpolation='linear',
-                                             wrapping='repeat')
+                                             wrapping='repeat',
+                                             internalformat='rgb32f')
         self.program['spec_map'] = Texture2D(self.svbrdf.specular_map,
                                              interpolation='linear',
-                                             wrapping='repeat')
-        # Workaround for vispy issue #1248.
-        # (Texture maps are truncated to range [0, 1])
-        self.svbrdf.spec_shape_map[:, :, :] /= 300
-        self.program['spec_shape_map'] = self.svbrdf.spec_shape_map
-
+                                             wrapping='repeat',
+                                             internalformat='rgb32f')
+        self.program['spec_shape_map'] = Texture2D(self.svbrdf.spec_shape_map,
+                                                   internalformat='rgb32f')
         self.program['normal_map'] = Texture2D(self.svbrdf.normal_map,
                                                interpolation='linear',
-                                               wrapping='repeat')
+                                               wrapping='repeat',
+                                               internalformat='rgb32f')
 
         height, width, _ = self.svbrdf.diffuse_map.shape
 
