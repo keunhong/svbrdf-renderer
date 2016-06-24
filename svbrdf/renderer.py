@@ -50,22 +50,19 @@ class Camera:
     def perspective_mat(self):
         mat = util.transforms.perspective(
             self.fov, self.size[0] / self.size[1], self.near, self.far).T
-        mat[0, 0] *= -1
-        mat[1, 1] *= -1
         return mat
 
     def view_mat(self):
         rotation_mat = np.eye(3)
-        rotation_mat[2, :] = _normalized(-self.forward)
-        rotation_mat[0, :] = np.cross(self.up, rotation_mat[2, :])
-        rotation_mat[1, :] = np.cross(rotation_mat[2, :], rotation_mat[0, :])
+        rotation_mat[0, :] = np.cross(self.forward, self.up)
+        rotation_mat[1, :] = self.up
+        rotation_mat[2, :] = -self.forward
 
-        position = rotation_mat.T.dot(self.position)
+        position = rotation_mat.dot(self.position)
 
         view_mat = np.eye(4)
         view_mat[:3, :3] = rotation_mat
         view_mat[:3, 3] = -position
-        print(view_mat)
 
         return view_mat
 
@@ -83,16 +80,16 @@ class Canvas(app.Canvas):
 
         self.camera_rot = 0
         self.camera = Camera(
-            size=size, fov=75, near=10, far=300.0,
-            position=(5.0, 55.0, 60.0),
-            lookat=(0.0, 10.0, -0.0),
-            up=(0.0, 0.0, -1.0))
+            size=size, fov=75, near=10, far=1000.0,
+            position=(5.0, 10.0, 150.0),
+            lookat=(0.0, 0.0, -0.0),
+            up=(0.0, 1.0, 0.0))
 
-        self.light_intensity = 8200.0
+        self.light_intensity = 2500.0
 
         self.light_color = (1.0, 1.0, 1.0)
 
-        self.program['light_position'] = (90, 90, 90)
+        self.program['light_position'] = (20, 30, 60)
         self.program['light_intensity'] = self.light_intensity
         self.program['light_color'] = self.light_color
 
@@ -105,7 +102,9 @@ class Canvas(app.Canvas):
         self.program['spec_map'] = Texture2D(self.svbrdf.specular_map,
                                              interpolation='linear',
                                              wrapping='repeat')
-        self.svbrdf.spec_shape_map[:, :, :] /= 100
+        # Workaround for vispy issue #1248.
+        # (Texture maps are truncated to range [0, 1])
+        self.svbrdf.spec_shape_map[:, :, :] /= 300
         self.program['spec_shape_map'] = self.svbrdf.spec_shape_map
 
         self.program['normal_map'] = Texture2D(self.svbrdf.normal_map,
@@ -128,17 +127,8 @@ class Canvas(app.Canvas):
         self.timer.start()
 
     def update_uniforms(self):
-        view_mat = np.array([
-            [0.993884, -0.110432, 0.000000, 1.104316],
-            [0.088150, 0.793346, -0.602355, -7.933460],
-            [0.066519, 0.598671, 0.798228, -81.153198],
-            [0.000000, 0.000000, 0.000000, 1.000000]], dtype=np.float32)
-        self.program['cam_pos'] = linalg.inv(view_mat)[:3, 3]
-        # print(self.program['cam_pos'])
-        # self.program['u_view_mat'] = self.camera.view_mat()
-        self.program['u_view_mat'] = view_mat.T
-        # print(self.camera.perspective_mat())
-        # print(self.program['u_view_mat'])
+        self.program['cam_pos'] = linalg.inv(self.camera.view_mat())[:3, 3]
+        self.program['u_view_mat'] = self.camera.view_mat().T
         self.program['u_perspective_mat'] = self.camera.perspective_mat().T
 
     def on_draw(self, event):
@@ -147,8 +137,11 @@ class Canvas(app.Canvas):
 
     def on_timer(self, event):
         # self.light_azimuth += 0.01
-        # self.camera_rot += 0.005
-        # self.camera.position[0] = 100.0 * np.sin(self.camera_rot)
-        # self.camera.position[2] = 100.0 * np.cos(self.camera_rot)
+        angle = 0.01
+        rot = np.array([
+            [np.cos(angle), -np.sin(angle)],
+            [np.sin(angle), np.cos(angle)]
+        ])
+        self.camera.position[[0, 2]] = rot.dot(self.camera.position[[0, 2]])
         self.update_uniforms()
         self.update()

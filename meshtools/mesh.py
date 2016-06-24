@@ -8,11 +8,7 @@ class Mesh:
         self.vertices = vertices
         self.faces = faces
         self.normals = normals
-        # self.normals = self.compute_normals()
-        print(normals.shape, self.compute_normals().shape)
         self.uvs = uvs
-        print(uvs.shape)
-        print(vertices.shape)
         self.materials = materials
         self.group_names = group_names
         self.object_names = object_names
@@ -46,9 +42,6 @@ class Mesh:
         for i in range(num_vertices):
             normals[i, :] /= normal_count[i]
         return normals
-
-    # def compute_uvs(self):
-    #
 
     def expand_tangents(self):
         tangents = []
