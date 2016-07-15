@@ -55,8 +55,8 @@ class Camera:
     def view_mat(self):
         rotation_mat = np.eye(3)
         rotation_mat[0, :] = np.cross(self.forward, self.up)
-        rotation_mat[1, :] = self.up
         rotation_mat[2, :] = -self.forward
+        rotation_mat[1, :] = np.cross(rotation_mat[0, :], rotation_mat[2, :])
 
         position = rotation_mat.dot(self.position)
 
@@ -81,7 +81,7 @@ class Canvas(app.Canvas):
         self.camera_rot = 0
         self.camera = Camera(
             size=size, fov=75, near=10, far=1000.0,
-            position=(5.0, 10.0, 150.0),
+            position=(100.0, 10.0, 150.0),
             lookat=(0.0, 0.0, -0.0),
             up=(0.0, 1.0, 0.0))
 
@@ -89,7 +89,7 @@ class Canvas(app.Canvas):
 
         self.light_color = (1.0, 1.0, 1.0)
 
-        self.program['light_position'] = (20, 30, 60)
+        self.program['light_position'] = (20, 30, 100)
         self.program['light_intensity'] = self.light_intensity
         self.program['light_color'] = self.light_color
 
@@ -117,6 +117,7 @@ class Canvas(app.Canvas):
         vertex_normals = mesh.expand_face_normals()
         vertex_tangents, vertex_bitangents = mesh.expand_tangents()
         vertex_uvs = mesh.expand_face_uvs()
+        print(vertex_uvs.min())
         self.program['a_position'] = vertex_positions
         self.program['a_normal'] = vertex_normals
         self.program['a_uv'] = vertex_uvs
@@ -136,7 +137,7 @@ class Canvas(app.Canvas):
         self.program.draw(gl.GL_TRIANGLES)
 
     def on_timer(self, event):
-        # self.light_azimuth += 0.01
+        self.light_azimuth += 0.01
         angle = 0.01
         rot = np.array([
             [np.cos(angle), -np.sin(angle)],
