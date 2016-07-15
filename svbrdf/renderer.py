@@ -56,6 +56,9 @@ class Camera:
         rotation_mat = np.eye(3)
         rotation_mat[0, :] = np.cross(self.forward, self.up)
         rotation_mat[2, :] = -self.forward
+        # We recompute the 'up' vector portion of the matrix as the cross
+        # product of the forward and sideways vector so that we have an ortho-
+        # normal basis.
         rotation_mat[1, :] = np.cross(rotation_mat[0, :], rotation_mat[2, :])
 
         position = rotation_mat.dot(self.position)
