@@ -75,7 +75,7 @@ class Camera:
         # We recompute the 'up' vector portion of the matrix as the cross
         # product of the forward and sideways vector so that we have an ortho-
         # normal basis.
-        rotation_mat[1, :] = np.cross(rotation_mat[0, :], rotation_mat[2, :])
+        rotation_mat[1, :] = np.cross(rotation_mat[2, :], rotation_mat[0, :])
 
         position = rotation_mat.dot(self.position)
 
@@ -147,6 +147,13 @@ class Canvas(app.Canvas):
         self.program['cam_pos'] = linalg.inv(self.camera.view_mat())[:3, 3]
         self.program['u_view_mat'] = self.camera.view_mat().T
         self.program['u_perspective_mat'] = self.camera.perspective_mat().T
+
+    def on_resize(self, event):
+        vp = (0, 0, self.physical_size[0], self.physical_size[1])
+        self.context.set_viewport(*vp)
+        self.camera.size = self.size
+        self.update_uniforms()
+        self.update()
 
     def on_draw(self, event):
         gloo.clear(color=(1, 1, 1))
