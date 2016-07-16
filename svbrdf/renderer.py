@@ -4,6 +4,7 @@ import numpy as np
 from numpy import linalg
 from vispy import gloo, app, util
 from vispy.gloo import gl, Texture2D
+from vispy.util.quaternion import Quaternion
 
 from meshtools.mesh import Mesh
 from . import SVBRDF
@@ -30,6 +31,21 @@ def _normalized_to_range(array, lo, hi):
     max_val = array.max()
     scale = max_val - min_val if (min_val < max_val) else 1
     return (array - min_val) / scale * (hi - lo) + lo
+
+
+def _arcball(x, y, w, h):
+    """Convert x,y coordinates to w,x,y,z Quaternion parameters
+    Adapted from:
+    linalg library
+    Copyright (c) 2010-2015, Renaud Blanch <rndblnch at gmail dot com>
+    Licence at your convenience:
+    GPLv3 or higher <http://www.gnu.org/licenses/gpl.html>
+    BSD new <http://opensource.org/licenses/BSD-3-Clause>
+    """
+    r = (w + h) / 2.
+    x, y = -(2. * x - w) / r, -(2. * y - h) / r
+    h = np.sqrt(x*x + y*y)
+    return (0., x/h, y/h, 0.) if h > 1. else (0., x, y, np.sqrt(1. - h*h))
 
 
 class Camera:
@@ -127,9 +143,6 @@ class Canvas(app.Canvas):
         self.program['a_tangent'] = vertex_tangents
         self.program['a_bitangent'] = vertex_bitangents
 
-        self.timer = app.Timer('auto', self.on_timer)
-        self.timer.start()
-
     def update_uniforms(self):
         self.program['cam_pos'] = linalg.inv(self.camera.view_mat())[:3, 3]
         self.program['u_view_mat'] = self.camera.view_mat().T
@@ -139,13 +152,13 @@ class Canvas(app.Canvas):
         gloo.clear(color=(1, 1, 1))
         self.program.draw(gl.GL_TRIANGLES)
 
-    def on_timer(self, event):
-        self.light_azimuth += 0.01
-        angle = 0.01
-        rot = np.array([
-            [np.cos(angle), -np.sin(angle)],
-            [np.sin(angle), np.cos(angle)]
-        ])
-        self.camera.position[[0, 2]] = rot.dot(self.camera.position[[0, 2]])
-        self.update_uniforms()
-        self.update()
+    def on_mouse_move(self, event):
+        if event.is_dragging:
+            x0, y0 = event.last_event.pos
+            x1, y1 = event.pos
+            w, h = self.size
+            quat = (Quaternion(*_arcball(x1, y1, w, h))
+                    * Quaternion(*_arcball(x0, y0, w, h)))
+            self.camera.position = quat.get_matrix()[:3, :3].dot(self.camera.position)
+            self.update_uniforms()
+            self.update()
