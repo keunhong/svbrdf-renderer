@@ -104,6 +104,8 @@ class Canvas(app.Canvas):
             lookat=(0.0, 0.0, -0.0),
             up=(0.0, 1.0, 0.0))
 
+        self.model_quat = Quaternion()
+
         self.light_intensity = 2500.0
 
         self.light_color = (1.0, 1.0, 1.0)
@@ -146,6 +148,7 @@ class Canvas(app.Canvas):
     def update_uniforms(self):
         self.program['cam_pos'] = linalg.inv(self.camera.view_mat())[:3, 3]
         self.program['u_view_mat'] = self.camera.view_mat().T
+        self.program['u_model_mat'] = self.model_quat.get_matrix().T
         self.program['u_perspective_mat'] = self.camera.perspective_mat().T
 
     def on_resize(self, event):
@@ -164,8 +167,9 @@ class Canvas(app.Canvas):
             x0, y0 = event.last_event.pos
             x1, y1 = event.pos
             w, h = self.size
-            quat = (Quaternion(*_arcball(x1, y1, w, h))
-                    * Quaternion(*_arcball(x0, y0, w, h)))
-            self.camera.position = quat.get_matrix()[:3, :3].dot(self.camera.position)
+            quat = (Quaternion(*_arcball(x0, y0, w, h))
+                    * Quaternion(*_arcball(x1, y1, w, h)))
+            self.camera.position = quat.get_matrix()[:3, :3].T.dot(
+                self.camera.position)
             self.update_uniforms()
             self.update()
