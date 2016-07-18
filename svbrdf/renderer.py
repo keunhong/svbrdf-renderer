@@ -46,7 +46,7 @@ def _arcball(x, y, w, h):
     r = (w + h) / 2.
     x, y = -(2. * x - w) / r, -(2. * y - h) / r
     h = np.sqrt(x*x + y*y)
-    return (0., x/h, y/h, 0.) if h > 1. else (0., x, y, np.sqrt(1. - h*h))
+    return (0., x/h, y/h, 0.) if h > 1. else (0., -x, y, np.sqrt(1. - h*h))
 
 
 class Camera:
@@ -71,7 +71,7 @@ class Camera:
 
     def view_mat(self):
         rotation_mat = np.eye(3)
-        rotation_mat[0, :] = np.cross(self.forward, self.up)
+        rotation_mat[0, :] = _normalized(np.cross(self.forward, self.up))
         rotation_mat[2, :] = -self.forward
         # We recompute the 'up' vector portion of the matrix as the cross
         # product of the forward and sideways vector so that we have an ortho-
@@ -113,17 +113,19 @@ class Canvas(app.Canvas):
         self.svbrdf = svbrdf
 
         self.camera_rot = 0
+        self.quaternion = Quaternion()
+        self.camera_base_pos = [0, 0, 150]
         self.camera = Camera(
             size=size, fov=75, near=10, far=1000.0,
-            position=(100.0, 10.0, 150.0),
+            position=self.quaternion.rotate_point(self.camera_base_pos),
             lookat=(0.0, 0.0, -0.0),
             up=(0.0, 1.0, 0.0))
-
-        self.model_quat = Quaternion()
+        print(self.camera.position)
 
         self.lights = [
             Light((20, 30, 100), 2500),
             Light((20, 30, -100), 2500),
+            Light((0, 100, 10), 2500),
         ]
 
         self.program = Program(_vert_shader_source,
@@ -164,14 +166,14 @@ class Canvas(app.Canvas):
     def update_uniforms(self):
         self.program['cam_pos'] = linalg.inv(self.camera.view_mat())[:3, 3]
         self.program['u_view_mat'] = self.camera.view_mat().T
-        self.program['u_model_mat'] = self.model_quat.get_matrix().T
+        # self.program['u_model_mat'] = self.model_quat.get_matrix().T
+        self.program['u_model_mat'] = np.eye(4)
         self.program['u_perspective_mat'] = self.camera.perspective_mat().T
 
         for i, light in enumerate(self.lights):
             self.program['light_position[{}]'.format(i)] = light.position
             self.program['light_intensity[{}]'.format(i)] = light.intensity
             self.program['light_color[{}]'.format(i)] = light.color
-
 
     def on_resize(self, event):
         vp = (0, 0, self.physical_size[0], self.physical_size[1])
@@ -189,9 +191,10 @@ class Canvas(app.Canvas):
             x0, y0 = event.last_event.pos
             x1, y1 = event.pos
             w, h = self.size
-            quat = (Quaternion(*_arcball(x0, y0, w, h))
+            self.quaternion = (self.quaternion
+                    * Quaternion(*_arcball(x0, y0, w, h))
                     * Quaternion(*_arcball(x1, y1, w, h)))
-            self.camera.position = quat.get_matrix()[:3, :3].T.dot(
-                self.camera.position)
+            self.camera.position = self.quaternion.rotate_point(self.camera_base_pos)
+            print(linalg.norm(self.camera.position))
             self.update_uniforms()
             self.update()
