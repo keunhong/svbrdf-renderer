@@ -1,4 +1,5 @@
 import os
+from string import Template
 
 import numpy as np
 from numpy import linalg
@@ -14,9 +15,9 @@ _vert_shader_filename = os.path.join(_package_dir, 'svbrdf.vert.glsl')
 _frag_shader_filename = os.path.join(_package_dir, 'svbrdf.frag.glsl')
 
 with open(_vert_shader_filename, 'r') as f:
-    _vert_shader_source = f.read()
+    _vert_shader_source = Template(f.read())
 with open(_frag_shader_filename, 'r') as f:
-    _frag_shader_source = f.read()
+    _frag_shader_source = Template(f.read())
 
 
 def _normalized(vec):
@@ -86,6 +87,23 @@ class Camera:
         return view_mat
 
 
+class Light:
+    def __init__(self, position, intensity, color=(1.0, 1.0, 1.0)):
+        self.position = position
+        self.intensity = intensity
+        self.color = color
+
+
+class Program:
+    def __init__(self, vert_shader, frag_shader, lights):
+        self.lights = lights
+        self.vert_shader = vert_shader.substitute()
+        self.frag_shader = frag_shader.substitute(num_lights=len(self.lights))
+
+    def compile(self):
+        return gloo.Program(self.vert_shader, self.frag_shader)
+
+
 class Canvas(app.Canvas):
     def __init__(self, svbrdf: SVBRDF, mesh: Mesh, size=(800, 600)):
         app.Canvas.__init__(self, size=size, show=True)
@@ -93,9 +111,6 @@ class Canvas(app.Canvas):
         gloo.set_viewport(0, 0, *self.size)
 
         self.svbrdf = svbrdf
-
-        self.program = gloo.Program(_vert_shader_source,
-                                    _frag_shader_source)
 
         self.camera_rot = 0
         self.camera = Camera(
@@ -106,13 +121,14 @@ class Canvas(app.Canvas):
 
         self.model_quat = Quaternion()
 
-        self.light_intensity = 2500.0
+        self.lights = [
+            Light((20, 30, 100), 2500),
+            Light((20, 30, -100), 2500),
+        ]
 
-        self.light_color = (1.0, 1.0, 1.0)
-
-        self.program['light_position'] = (20, 30, 100)
-        self.program['light_intensity'] = self.light_intensity
-        self.program['light_color'] = self.light_color
+        self.program = Program(_vert_shader_source,
+                               _frag_shader_source,
+                               self.lights).compile()
 
         self.update_uniforms()
 
@@ -141,7 +157,7 @@ class Canvas(app.Canvas):
         print(vertex_uvs.min())
         self.program['a_position'] = vertex_positions
         self.program['a_normal'] = vertex_normals
-        self.program['a_uv'] = vertex_uvs
+        self.program['a_uv'] = vertex_uvs * 2
         self.program['a_tangent'] = vertex_tangents
         self.program['a_bitangent'] = vertex_bitangents
 
@@ -150,6 +166,12 @@ class Canvas(app.Canvas):
         self.program['u_view_mat'] = self.camera.view_mat().T
         self.program['u_model_mat'] = self.model_quat.get_matrix().T
         self.program['u_perspective_mat'] = self.camera.perspective_mat().T
+
+        for i, light in enumerate(self.lights):
+            self.program['light_position[{}]'.format(i)] = light.position
+            self.program['light_intensity[{}]'.format(i)] = light.intensity
+            self.program['light_color[{}]'.format(i)] = light.color
+
 
     def on_resize(self, event):
         vp = (0, 0, self.physical_size[0], self.physical_size[1])
