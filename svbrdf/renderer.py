@@ -21,13 +21,6 @@ with open(_frag_shader_filename, 'r') as f:
     _frag_shader_source = Template(f.read())
 
 
-def _arcball(x, y, w, h):
-    r = (w + h) / 2.
-    x, y = -(2. * x - w) / r, -(2. * y - h) / r
-    h = np.sqrt(x*x + y*y)
-    return (0., x/h, y/h, 0.) if h > 1. else (0., x, y, np.sqrt(1. - h*h))
-
-
 class Program:
     def __init__(self, vert_shader, frag_shader, lights):
         self.lights = lights
@@ -48,7 +41,7 @@ class Canvas(app.Canvas):
 
         self.camera_rot = 0
         self.quaternion = Quaternion()
-        self.camera = rt.Camera(
+        self.camera = rt.ArcballCamera(
             size=size, fov=75, near=10, far=1000.0,
             position=[0, 0, 150],
             lookat=(0.0, 0.0, -0.0),
@@ -125,12 +118,6 @@ class Canvas(app.Canvas):
 
     def on_mouse_move(self, event):
         if event.is_dragging:
-            x0, y0 = event.last_event.pos
-            x1, y1 = event.pos
-            w, h = self.size
-            self.quaternion = (
-                    Quaternion(*_arcball(x1, y0, w, h))
-                    * Quaternion(*_arcball(x0, y1, w, h)))
-            self.camera.position = self.quaternion.rotate_point(self.camera.position)
+            self.camera.handle_mouse(event.last_event.pos, event.pos)
             self.update_uniforms()
             self.update()

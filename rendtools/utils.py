@@ -1,4 +1,6 @@
+import numpy as np
 from numpy import linalg
+from vispy.util.quaternion import Quaternion
 
 
 def normalized(vec):
