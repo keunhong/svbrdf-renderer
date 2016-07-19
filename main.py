@@ -4,7 +4,7 @@ from vispy import app
 from meshtools import wavefront
 from svbrdf import renderer, SVBRDF
 
-app.use_app('pyglet')
+app.use_app('glfw')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--brdf', dest='brdf_path', type=str, required=True)
@@ -21,5 +21,5 @@ if __name__=='__main__':
     print('Mesh bounding size is {}'.format(mesh.bounding_size()))
     print('Loading BRDF {}'.format(args.brdf_path))
     brdf = SVBRDF(args.brdf_path)
-    canvas = renderer.Canvas(brdf, mesh, size=(1000, 1000))
+    canvas = renderer.Canvas(brdf, mesh, size=(1280, 800))
     app.run()

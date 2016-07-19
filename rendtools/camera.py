@@ -16,7 +16,6 @@ class BaseCamera:
         self.lookat = np.array(lookat)
         self.up = utils.normalized(np.array(up))
 
-    @property
     def forward(self):
         return utils.normalized(self.lookat - self.position)
 
@@ -26,9 +25,10 @@ class BaseCamera:
         return mat
 
     def view_mat(self):
+        forward = self.forward()
         rotation_mat = np.eye(3)
-        rotation_mat[0, :] = utils.normalized(np.cross(self.forward, self.up))
-        rotation_mat[2, :] = -self.forward
+        rotation_mat[0, :] = utils.normalized(np.cross(forward, self.up))
+        rotation_mat[2, :] = -forward
         # We recompute the 'up' vector portion of the matrix as the cross
         # product of the forward and sideways vector so that we have an ortho-
         # normal basis.
@@ -43,7 +43,7 @@ class BaseCamera:
         return view_mat
 
 
-def _get_arcball_vector(x, y, w, h):
+def _get_arcball_vector(x, y, w, h, r=100.0):
     P = np.array((2.0 * x / w - 1.0,
                   -(2.0 * y / h - 1.0),
                   0))
@@ -57,17 +57,20 @@ def _get_arcball_vector(x, y, w, h):
 
 
 class ArcballCamera(BaseCamera):
-    def __init__(self, rotate_speed=10.0, *args, **kwargs):
+    def __init__(self, rotate_speed=100.0, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.rotate_speed = rotate_speed
+        self.max_speed = np.pi / 2
 
     def handle_mouse(self, last_pos, cur_pos):
         va = _get_arcball_vector(*cur_pos, *self.size)
         vb = _get_arcball_vector(*last_pos, *self.size)
-        angle = np.arccos(min(1.0, np.dot(va, vb))) * self.rotate_speed
+        angle = min(np.arccos(min(1.0, np.dot(va, vb))) * self.rotate_speed,
+                    self.max_speed)
+        print(angle)
         axis_in_camera_coord = np.cross(va, vb)
 
-        cam_to_world = self.view_mat().T[:3, :3]
+        cam_to_world = self.view_mat()[:3, :3].T
         axis_in_world_coord = cam_to_world.dot(axis_in_camera_coord)
 
         rotation_quat = Quaternion.create_from_axis_angle(angle,
