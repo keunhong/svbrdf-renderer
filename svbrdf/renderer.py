@@ -82,7 +82,6 @@ class Canvas(app.Canvas):
         vertex_normals = mesh.expand_face_normals()
         vertex_tangents, vertex_bitangents = mesh.expand_tangents()
         vertex_uvs = mesh.expand_face_uvs()
-        print(vertex_uvs.min())
         self.program['a_position'] = vertex_positions
         self.program['a_normal'] = vertex_normals
         self.program['a_uv'] = vertex_uvs * 2

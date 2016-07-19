@@ -67,7 +67,6 @@ class ArcballCamera(BaseCamera):
         vb = _get_arcball_vector(*last_pos, *self.size)
         angle = min(np.arccos(min(1.0, np.dot(va, vb))) * self.rotate_speed,
                     self.max_speed)
-        print(angle)
         axis_in_camera_coord = np.cross(va, vb)
 
         cam_to_world = self.view_mat()[:3, :3].T
