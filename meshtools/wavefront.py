@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import OrderedDict
 
 import numpy as np
 
@@ -60,7 +61,7 @@ def read_obj_file(path):
     normals = []
     uvs = []
 
-    material_ids = {}
+    material_ids = OrderedDict([])
     material_counter = -1
     current_material_id = -1
 
@@ -96,7 +97,6 @@ def read_obj_file(path):
                                           current_object_id))
             elif parts[0] == OBJ_MTL_USE_MARKER:
                 material_name = parts[1]
-                # current_material_id += 1
                 if material_name not in material_ids:
                     material_counter += 1
                     material_ids[material_name] = material_counter
@@ -114,7 +114,7 @@ def read_obj_file(path):
                     object_ids[object_name] = object_counter
                 current_object_id = object_ids[object_name]
 
-    materials = {}
+    materials = OrderedDict([])
     for name in material_ids:
         materials[name] = Material(name, material_ids[name])
 

@@ -1,5 +1,6 @@
 import numpy as np
-from numpy import linalg
+
+EPSILON = 1e-10
 
 
 class Mesh:
@@ -8,7 +9,7 @@ class Mesh:
         self.vertices = vertices
         self.faces = faces
         self.normals = normals
-        self.uvs = uvs
+        self.uvs = uvs[:, :2]
         self.materials = materials
         self.group_names = group_names
         self.object_names = object_names
@@ -20,75 +21,72 @@ class Mesh:
         if center:
             self.vertices -= center_point[None, :]
 
-    def compute_normals(self):
-        num_vertices = len(self.vertices)
-        num_faces = len(self.faces)
-        normal_count = np.zeros((num_vertices, 1), dtype=np.int32)
-        normals = np.zeros((num_vertices, 3), dtype=np.float32)
-        for i, face in enumerate(self.faces):
-            face_vertex_indices = [v - 1 for v in face['vertices']]
-            v1 = self.vertices[face_vertex_indices[0]]
-            v2 = self.vertices[face_vertex_indices[1]]
-            v3 = self.vertices[face_vertex_indices[2]]
-            normal = np.cross(v2 - v1, v3 - v1)
-            normal /= linalg.norm(normal)
-            # normals[i] = normal
-            normals[face_vertex_indices[0], :] += normal
-            normals[face_vertex_indices[1], :] += normal
-            normals[face_vertex_indices[2], :] += normal
-            normal_count[face_vertex_indices[0]] += 1
-            normal_count[face_vertex_indices[1]] += 1
-            normal_count[face_vertex_indices[2]] += 1
-        for i in range(num_vertices):
-            normals[i, :] /= normal_count[i]
-        return normals
+    def get_faces(self, filter=None):
+        if filter is None:
+            return self.faces
+        faces = []
+        for face in self.faces:
+            for k, v in filter.items():
+                if face[k] == v:
+                    faces.append(face)
+        return faces
 
-    def expand_tangents(self):
+    def expand_tangents(self, filter=None):
         tangents = []
         bitangents = []
-        for face in self.faces:
+        for face in self.get_faces(filter):
             face_vertex_indices = [v for v in face['vertices']]
             face_uv_indices = [v for v in face['uvs']]
-            face_vertices = [self.vertices[i - 1, :]
-                             for i in face_vertex_indices]
-            face_uvs = [self.uvs[i - 1, :] * 100
-                        for i in face_uv_indices]
-            delta_pos1 = face_vertices[1] - face_vertices[0]
-            delta_pos2 = face_vertices[2] - face_vertices[0]
-            delta_uv1 = face_uvs[1] - face_uvs[0]
-            delta_uv2 = face_uvs[2] - face_uvs[0]
-            r = 1.0 / (delta_uv1[0] * delta_uv2[1]
-                       - delta_uv1[1] * delta_uv2[0])
-            tangent = r * (delta_pos1 * delta_uv2[1]
-                           - delta_pos2 * delta_uv1[1])
-            bitangent = r * (delta_pos2 * delta_uv1[0]
-                             - delta_pos1 * delta_uv2[0])
+            if None not in face_uv_indices:
+                face_vertices = [self.vertices[i - 1, :]
+                                 for i in face_vertex_indices]
+                face_uvs = [self.uvs[i - 1, :] * 100
+                            for i in face_uv_indices]
+                delta_pos1 = face_vertices[1] - face_vertices[0]
+                delta_pos2 = face_vertices[2] - face_vertices[0]
+                delta_uv1 = face_uvs[1] - face_uvs[0]
+                delta_uv2 = face_uvs[2] - face_uvs[0]
+                denom = (delta_uv1[0] * delta_uv2[1]
+                           - delta_uv1[1] * delta_uv2[0])
+                r = 1.0 / (denom if denom > 0 else EPSILON)
+                tangent = r * (delta_pos1 * delta_uv2[1]
+                               - delta_pos2 * delta_uv1[1])
+                bitangent = r * (delta_pos2 * delta_uv1[0]
+                                 - delta_pos1 * delta_uv2[0])
+            else:
+                tangent = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+                bitangent = np.array([0.0, 0.0, 0.0], dtype=np.float32)
             tangents.extend([tangent] * 3)
             bitangents.extend([bitangent] * 3)
 
         return np.array(tangents), np.array(bitangents)
 
-    def expand_face_vertices(self):
+    def expand_face_vertices(self, filter=None):
         out_vertices = []
-        for face in self.faces:
+        for face in self.get_faces(filter):
             face_vertex_indices = [v for v in face['vertices']]
             face_vertices = [self.vertices[i - 1, :]
                              for i in face_vertex_indices]
             out_vertices.extend(face_vertices)
         return np.array(out_vertices)
 
-    def expand_face_uvs(self):
+    def expand_face_uvs(self, filter=None):
         out_uvs = []
-        for face in self.faces:
+        for face in self.get_faces(filter):
             face_uv_indices = [v for v in face['uvs']]
-            face_uvs = [self.uvs[i - 1, :]
-                        for i in face_uv_indices]
+            if None not in face_uv_indices:
+                face_uvs = [self.uvs[i - 1, :]
+                            for i in face_uv_indices]
+            else:
+                # Add placeholder UVs if not available.
+                zero = np.array([0.0, 0.0], dtype=np.float32)
+                face_uvs = [zero] * 3
             out_uvs.extend(face_uvs)
         return np.array(out_uvs)
 
-    def expand_face_normals(self):
+    def expand_face_normals(self, filter=None):
         out_normals = []
-        for face in self.faces:
+        for face in self.get_faces(filter):
             face_vertex_indices = [v for v in face['normals']]
             face_normals = [self.normals[i - 1, :]
                             for i in face_vertex_indices]

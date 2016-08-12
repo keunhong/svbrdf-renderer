@@ -1,23 +1,74 @@
 import numpy as np
-from numpy import linalg
 from vispy import util
 from vispy.util.quaternion import Quaternion
-from . import utils
+
+from . import graphics_utils
+from . import vector_utils
 
 
 class BaseCamera:
-    def __init__(self, fov, size, near, far, position, lookat, up):
-        self.fov = fov
+    def __init__(self, size, near, far):
         self.size = size
         self.near = near
         self.far = far
 
-        self.position = np.array(position)
-        self.lookat = np.array(lookat)
-        self.up = utils.normalized(np.array(up))
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        self._size = value
+        self.left = -self.size[0] / 2
+        self.right = self.size[0] / 2
+        self.top = self.size[1] / 2
+        self.bottom = -self.size[1] / 2
+
+    def perspective_mat(self):
+        raise NotImplementedError
+
+    def view_mat(self):
+        raise NotImplementedError
+
+    def handle_mouse(self):
+        pass
+
+    def unproject(self, x: np.ndarray, y: np.ndarray, depth: np.ndarray):
+        return graphics_utils.unproject(*self.size,
+                                        self.perspective_mat(),
+                                        self.view_mat(),
+                                        x, y, depth)
+
+
+class CalibratedCamera(BaseCamera):
+    def __init__(self, extrinsic: np.ndarray, intrinsic: np.ndarray,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.extrinsic = extrinsic
+        self.intrinsic = intrinsic
+
+    def perspective_mat(self):
+        return graphics_utils.intrinsic_to_opengl_projection(
+            self.intrinsic,
+            self.left, self.right, self.top, self.bottom,
+            self.near, self.far)
+
+    def view_mat(self):
+        return graphics_utils.extrinsic_to_opengl_modelview(self.extrinsic)
+
+
+class PerspectiveCamera(BaseCamera):
+    def __init__(self, size, near, far, fov, position, lookat, up,
+                 *args, **kwargs):
+        super().__init__(size, near, far)
+
+        self.fov = fov
+        self.position = np.array(position, dtype=np.float32)
+        self.lookat = np.array(lookat, dtype=np.float32)
+        self.up = vector_utils.normalized(np.array(up))
 
     def forward(self):
-        return utils.normalized(self.lookat - self.position)
+        return vector_utils.normalized(self.lookat - self.position)
 
     def perspective_mat(self):
         mat = util.transforms.perspective(
@@ -27,7 +78,8 @@ class BaseCamera:
     def view_mat(self):
         forward = self.forward()
         rotation_mat = np.eye(3)
-        rotation_mat[0, :] = utils.normalized(np.cross(forward, self.up))
+        rotation_mat[0, :] = vector_utils.normalized(
+            np.cross(forward, self.up))
         rotation_mat[2, :] = -forward
         # We recompute the 'up' vector portion of the matrix as the cross
         # product of the forward and sideways vector so that we have an ortho-
@@ -51,14 +103,15 @@ def _get_arcball_vector(x, y, w, h, r=100.0):
     if OP_sq <= 1:
         P[2] = np.sqrt(1 - OP_sq)
     else:
-        P = utils.normalized(P)
+        P = vector_utils.normalized(P)
 
     return P
 
 
-class ArcballCamera(BaseCamera):
-    def __init__(self, rotate_speed=100.0, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class ArcballCamera(PerspectiveCamera):
+    def __init__(self, size, near, far, fov, position, lookat, up,
+                 rotate_speed=100.0):
+        super().__init__(size, near, far, fov, position, lookat, up)
         self.rotate_speed = rotate_speed
         self.max_speed = np.pi / 2
 
